@@ -1,100 +1,97 @@
 import {
   Assign as AssignEvent,
-  Transfer as TransferEvent,
   PunkTransfer as PunkTransferEvent,
-  PunkOffered as PunkOfferedEvent,
-  PunkBidEntered as PunkBidEnteredEvent,
-  PunkBidWithdrawn as PunkBidWithdrawnEvent,
   PunkBought as PunkBoughtEvent,
-  PunkNoLongerForSale as PunkNoLongerForSaleEvent
 } from "../generated/CryptoPunks/CryptoPunks"
 import {
   Assign,
-  Transfer,
   PunkTransfer,
-  PunkOffered,
-  PunkBidEntered,
-  PunkBidWithdrawn,
   PunkBought,
-  PunkNoLongerForSale
+  User,
+  Punk
 } from "../generated/schema"
 
 export function handleAssign(event: AssignEvent): void {
-  let entity = new Assign(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.to = event.params.to
-  entity.punkIndex = event.params.punkIndex
-  entity.save()
-}
+  const userAddress = event.params.to.toHexString();
+  const timestamp = event.block.timestamp;
+  const punkId = event.params.punkIndex.toString();
 
-export function handleTransfer(event: TransferEvent): void {
-  let entity = new Transfer(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.from = event.params.from
-  entity.to = event.params.to
-  entity.value = event.params.value
-  entity.save()
+  let user = User.load(userAddress);
+  if (!user){
+    user = new User(userAddress);
+    user.save();
+  }
+
+  let assign = Assign.load(punkId);
+  if (!assign){
+    assign = new Assign(punkId);
+    assign.punk = punkId;
+    assign.user = userAddress;
+    assign.timestamp = timestamp;
+    assign.save();
+  }
+
+  let punk = Punk.load(punkId);
+  if (!punk){
+    punk = new Punk(punkId);
+    punk.creationTime = timestamp;
+    punk.creator = userAddress;
+    punk.owner = userAddress;
+    punk.save();
+  }
 }
 
 export function handlePunkTransfer(event: PunkTransferEvent): void {
-  let entity = new PunkTransfer(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.from = event.params.from
-  entity.to = event.params.to
-  entity.punkIndex = event.params.punkIndex
-  entity.save()
+  const to = event.params.to.toHexString();
+  const from = event.params.from.toHexString();
+  const punkId = event.params.punkIndex.toString();
+  const hash = event.transaction.hash.toHexString();
+
+  let punk: Punk | null = Punk.load(punkId);
+  if (punk){
+    punk.owner = to;
+    punk.save();
+  }
+
+  let user = User.load(to);
+  if (!user){
+    user = new User(to);
+    user.save();
+  }
+
+  let punkTransfer = new PunkTransfer(hash)
+  punkTransfer.from = from;
+  punkTransfer.to = to;
+  punkTransfer.punk = punkId;
+  punkTransfer.save();
 }
 
-export function handlePunkOffered(event: PunkOfferedEvent): void {
-  let entity = new PunkOffered(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.punkIndex = event.params.punkIndex
-  entity.minValue = event.params.minValue
-  entity.toAddress = event.params.toAddress
-  entity.save()
-}
-
-export function handlePunkBidEntered(event: PunkBidEnteredEvent): void {
-  let entity = new PunkBidEntered(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.punkIndex = event.params.punkIndex
-  entity.value = event.params.value
-  entity.fromAddress = event.params.fromAddress
-  entity.save()
-}
-
-export function handlePunkBidWithdrawn(event: PunkBidWithdrawnEvent): void {
-  let entity = new PunkBidWithdrawn(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.punkIndex = event.params.punkIndex
-  entity.value = event.params.value
-  entity.fromAddress = event.params.fromAddress
-  entity.save()
-}
 
 export function handlePunkBought(event: PunkBoughtEvent): void {
-  let entity = new PunkBought(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.punkIndex = event.params.punkIndex
-  entity.value = event.params.value
-  entity.fromAddress = event.params.fromAddress
-  entity.toAddress = event.params.toAddress
-  entity.save()
-}
+  const to = event.params.toAddress.toHexString();
+  const from = event.params.fromAddress.toHexString();
+  const punkId = event.params.punkIndex.toString();
+  const amount = event.params.value;
+  const hash = event.transaction.hash.toHexString();
+  const timestamp = event.block.timestamp;
 
-export function handlePunkNoLongerForSale(
-  event: PunkNoLongerForSaleEvent
-): void {
-  let entity = new PunkNoLongerForSale(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.punkIndex = event.params.punkIndex
-  entity.save()
+  let punkBought = new PunkBought(hash);
+  punkBought.punk = punkId;
+  punkBought.buyer = to;
+  punkBought.seller = from;
+  punkBought.amount = amount;
+  punkBought.timestamp = timestamp;
+  punkBought.save()
+
+  let punk: Punk | null = Punk.load(punkId);
+  if (punk){
+    punk.owner = to;
+    punk.save();
+  }
+
+  let user = User.load(to);
+  if(!user){
+    user = new User(to);
+    user.save();
+  }
 }

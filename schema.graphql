@@ -1,53 +1,35 @@
 type Assign @entity {
   id: ID!
-  to: Bytes! # address
-  punkIndex: BigInt! # uint256
+  punk: Punk!
+  user: User!
+  timestamp: BigInt!
 }
 
-type Transfer @entity {
+type Punk @entity {
   id: ID!
-  from: Bytes! # address
-  to: Bytes! # address
-  value: BigInt! # uint256
+  creationTime: BigInt!
+  creator: User! 
+  owner: User! 
 }
 
-type PunkTransfer @entity {
+type User @entity {
   id: ID!
-  from: Bytes! # address
-  to: Bytes! # address
-  punkIndex: BigInt! # uint256
-}
-
-type PunkOffered @entity {
-  id: ID!
-  punkIndex: BigInt! # uint256
-  minValue: BigInt! # uint256
-  toAddress: Bytes! # address
-}
-
-type PunkBidEntered @entity {
-  id: ID!
-  punkIndex: BigInt! # uint256
-  value: BigInt! # uint256
-  fromAddress: Bytes! # address
-}
-
-type PunkBidWithdrawn @entity {
-  id: ID!
-  punkIndex: BigInt! # uint256
-  value: BigInt! # uint256
-  fromAddress: Bytes! # address
+  ownedPunks: [Punk!]! @derivedFrom(field: "owner")
+  madePunks: [Punk!]! @derivedFrom(field: "creator")
 }
 
 type PunkBought @entity {
   id: ID!
-  punkIndex: BigInt! # uint256
-  value: BigInt! # uint256
-  fromAddress: Bytes! # address
-  toAddress: Bytes! # address
+  punk: Punk!
+  buyer: User!
+  seller: User! 
+  amount: BigInt! 
+  timestamp: BigInt! 
 }
 
-type PunkNoLongerForSale @entity {
+type PunkTransfer @entity {
   id: ID!
-  punkIndex: BigInt! # uint256
+  from: User! 
+  to: User!
+  punk: Punk! 
 }
